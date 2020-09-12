@@ -2,8 +2,9 @@ package main
 
 import "fmt"
 
+const prefix = "Hello, "
 func Hello(name string) string {
-	return fmt.Sprintf("Hello, %s", name)
+	return prefix + name
 }
 
 func main() {
