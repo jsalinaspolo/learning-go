@@ -2,24 +2,23 @@ package main
 
 import "fmt"
 
-const prefix = "Hello, "
-
 func Hello(name string, language string) string {
+	prefix := "Hello, "
+
 	if name == "" {
 		return prefix + "world"
 	}
 
-	if language == "Spanish" {
-		return "Hola, " + name
-	}
-
-	if language == "Russian" {
-		return "Privet, " + name
+	switch language {
+	case "russian":
+		prefix = "Privet, "
+	case "spanish":
+		prefix = "Hola, "
 	}
 
 	return prefix + name
 }
 
 func main() {
-    fmt.Println(Hello("world", ""))
+	fmt.Println(Hello("world", ""))
 }
