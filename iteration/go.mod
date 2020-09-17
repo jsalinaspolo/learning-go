@@ -1,3 +1,3 @@
-module learn-go-with-tests
+module iteration
 
 go 1.15

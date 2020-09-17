@@ -1,3 +1,3 @@
-module learn-go-with-tests
+module hello-world
 
 go 1.15
