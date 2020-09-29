@@ -15,8 +15,8 @@ func TestRepeat(t *testing.T) {
 }
 
 func ExampleRepeat() {
-	repeated := Repeat("aaaaa")
-	fmt.Println(repeated)
+	repeated := Repeat("a")
+	fmt.Println("\""+repeated+"\"")
 	// Output: "aaaaa"
 }
 
