@@ -3,10 +3,12 @@ package learn_httptest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
-	"github.com/stretchr/testify/require"
 )
 
 func githubSuccess() *httptest.Server {
@@ -23,7 +25,6 @@ func githubSuccess() *httptest.Server {
 }
 `
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("HELLO")
 		fmt.Fprintln(w, json)
 	}))
 
@@ -36,11 +37,11 @@ func TestCreateTag(t *testing.T) {
 		defer server.Close()
 
 		ghClient := NewGithubClient(server.Client())
-
+		ghClient.Client.BaseURL, _ = url.Parse(server.URL + "/")
 		ref, err := ghClient.CreateTag("test-tag7", "2c88b23d2170e372979d1c606007a2a591d82d4d")
 
 		data, _ := json.Marshal(ref)
-		fmt.Printf("%s", data)
+		log.Printf("%s", data)
 
 		require.NoError(t, err)
 		require.NotNil(t, ref)
