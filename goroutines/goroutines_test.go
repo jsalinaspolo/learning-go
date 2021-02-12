@@ -41,8 +41,8 @@ func TestLearningGoRoutines(t *testing.T) {
 
 	t.Run("goroutines async wait for trigger", func(t *testing.T) {
 		elements := []string{"el1", "el2", "el3"}
-			r, w, _ := os.Pipe()
-			os.Stdout = w
+		r, w, _ := os.Pipe()
+		os.Stdout = w
 		var goroutine = func() {
 
 			fmt.Fprint(w, "1")
@@ -51,7 +51,7 @@ func TestLearningGoRoutines(t *testing.T) {
 			go func() {
 				// loop is blocking
 				for _, id := range elements {
-					fmt.Fprint(w,  id)
+					fmt.Fprint(w, id)
 				}
 			}()
 			fmt.Fprint(w, "2")
