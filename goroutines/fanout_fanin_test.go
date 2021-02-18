@@ -39,7 +39,7 @@ func workerDistribution(in <-chan string) <-chan string {
 
 const workTime = 100 * time.Millisecond
 
-func worker(in <-chan string) <-chan string {
+func doWork(in <-chan string) <-chan string {
 	out := make(chan string)
 	go func() {
 		defer close(out)
@@ -57,7 +57,7 @@ func fanIn(cs ...<-chan string) <-chan string {
 	out := make(chan string)
 
 	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
+	// copies values from channel to out until channel is closed, then calls wg.Done.
 	output := func(c <-chan string) {
 		defer wg.Done()
 		for n := range c {
@@ -92,7 +92,7 @@ func TestGoroutinesPatterns(t *testing.T) {
 	t.Run("pipelines", func(t *testing.T) {
 		n := 5
 		c := generate(n)
-		out := worker(c)
+		out := doWork(c)
 
 		now := time.Now()
 		var result []string
@@ -115,7 +115,7 @@ func TestGoroutinesPatterns(t *testing.T) {
 		workers := n
 		channels := make([]<-chan string, workers)
 		for cpu := 0; cpu < workers; cpu++ {
-			channels[cpu] = worker(in)
+			channels[cpu] = doWork(in)
 		}
 
 		now := time.Now()
@@ -132,33 +132,50 @@ func TestGoroutinesPatterns(t *testing.T) {
 		require.LessOrEqual(t, time.Since(now).Milliseconds(), workTime.Milliseconds()+10) //adds 10ms as threshold
 	})
 
-	t.Run("fun-out and fun-in in order?", func(t *testing.T) {
-		// Produce input
-		n := 10
-		in := generate(n)
+	t.Run("fan-out fan-in in order using promises", func(t *testing.T) {
+		type slowFunc func() string
+		type future struct {
+			channel chan string
+			fn      slowFunc
+		}
 
-		// fun-out
-		c1 := worker(in)
-		c2 := worker(in)
-		c3 := worker(in)
-		c4 := worker(in)
-		c5 := worker(in)
-		c6 := worker(in)
-		c7 := worker(in)
-		c8 := worker(in)
-		c9 := worker(in)
-		c10 := worker(in)
+		newSlowFunc := func(i int) slowFunc {
+			return func() string {
+				time.Sleep(100 * time.Millisecond)
+				return fmt.Sprintf("out-%d", i)
+			}
+		}
+
+		var futures []*future
+		newFuture := func(fn slowFunc) *future {
+			f := &future{
+				channel: make(chan string),
+				fn:      fn,
+			}
+
+			go func() {
+				f.channel <- f.fn()
+			}()
+
+			return f
+		}
+
+		n := 100
+		// produce and fan out
+		for i := 0; i < n; i++ {
+			futures = append(futures, newFuture(newSlowFunc(i)))
+		}
 
 		now := time.Now()
+		// fan-in
 		var result []string
-		for n := range fanIn(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) {
-			fmt.Println(n)
-			result = append(result, n)
+		for i := range futures {
+			result = append(result, <-futures[i].channel)
 		}
 
 		expected := expectedSortedOutput(n)
 		require.Equal(t, len(expected), len(result))
-		require.NotEqual(t, expectedSortedOutput(n), result) // TODO should be EQUAL
-		require.LessOrEqual(t, time.Since(now).Milliseconds(), workTime.Milliseconds()+10) //adds 10ms as threshold
+		require.Equal(t, expectedSortedOutput(n), result)
+		require.LessOrEqual(t, time.Since(now).Milliseconds(), workTime.Milliseconds()+10)
 	})
 }
